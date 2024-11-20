@@ -1,18 +1,28 @@
 use glium::winit::application::ApplicationHandler;
-pub struct MyApp<F :Fn(&glium::winit::event_loop::ActiveEventLoop)>{
-    draw_func :F
+pub struct MyApp<DrawF,UpdaF>
+where 
+    DrawF:Fn(&glium::winit::event_loop::ActiveEventLoop),
+    UpdaF:Fn(&glium::winit::event_loop::ActiveEventLoop), 
+{
+    draw_func :DrawF,
+    update_func:UpdaF,
+
 }
 
-impl<F> MyApp<F> 
-where F:Fn(&glium::winit::event_loop::ActiveEventLoop)
+impl<DrawF,UpdaF> MyApp<DrawF,UpdaF> 
+where 
+    DrawF:Fn(&glium::winit::event_loop::ActiveEventLoop),
+    UpdaF:Fn(&glium::winit::event_loop::ActiveEventLoop),
 {
-    pub fn new(func:F)->Self{
-        return MyApp{draw_func :func};
+    pub fn new(draw_func:DrawF,update_func:UpdaF)->Self{
+        return MyApp{draw_func,update_func};
     }
 }
 
-impl<F> ApplicationHandler for MyApp<F>
-where F:Fn(&glium::winit::event_loop::ActiveEventLoop)
+impl<DrawF,UpdaF> ApplicationHandler for MyApp<DrawF,UpdaF>
+where 
+    DrawF:Fn(&glium::winit::event_loop::ActiveEventLoop),
+    UpdaF:Fn(&glium::winit::event_loop::ActiveEventLoop),
 {
     fn resumed(&mut self, _event_loop: &glium::winit::event_loop::ActiveEventLoop) {
         println!("resumed")
@@ -28,7 +38,7 @@ where F:Fn(&glium::winit::event_loop::ActiveEventLoop)
     }
 
     fn new_events(&mut self, event_loop: &glium::winit::event_loop::ActiveEventLoop, _cause: glium::winit::event::StartCause) {
-        (self.draw_func)(event_loop);
+        (self.update_func)(event_loop);
         
     }
 
@@ -46,8 +56,11 @@ where F:Fn(&glium::winit::event_loop::ActiveEventLoop)
             glium::winit::event::WindowEvent::CursorEntered { device_id :_}=>(),
             glium::winit::event::WindowEvent::CursorLeft { device_id:_ }=>(),
             glium::winit::event::WindowEvent::RedrawRequested=>(self.draw_func)(event_loop),
+            glium::winit::event::WindowEvent::MouseInput { device_id, state, button }=>{
+                
+            }
             
-            _=>()//println!("event :{:?}",event),
+            _=>println!("event :{:?}",event),
         }
 
     }
