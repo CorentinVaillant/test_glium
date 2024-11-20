@@ -20,11 +20,11 @@ pub const CUBE :VertexArr<8> = [
 ];
 
 #[allow(unused)]
-pub const TRIANGLE :VertexArr<4> = [
+pub const TRIANGLE :VertexArr<3> = [
     Vertex { position: [ 0.0 *100., 0.5 *100.,0.] },
     Vertex { position: [-0.43*100.,-0.25*100.,0.] },
     Vertex { position: [ 0.43*100.,-0.25*100.,0.] },
-    Vertex { position: [ 0.43*100., 0.25*100.,0.] },
+    // Vertex { position: [ 0.43*100., 0.25*100.,0.] },
 ];
 
 pub struct Mesh{
@@ -39,4 +39,25 @@ impl Mesh {
     pub fn into_vertex_slice(&self)->&[Vertex]{
         self.vertecies.as_slice()
     }
+
+    fn matrix_mul(&mut self, m :[[f32;4];4]){
+        self.vertecies.iter_mut().for_each(|vertex|{
+            for i in 0..3{
+                vertex.position[i] = vertex.position.iter().zip(m[i]).map(|(x,a)|{a*x}).sum::<f32>() + m[i][3];
+            }
+        });
+    }
+
+    pub fn rotate_x (&mut self,teta:f32){
+        self.matrix_mul(r_x(teta));
+    }
+}
+
+fn r_x(teta:f32)->[[f32;4];4]{
+    [
+        [1.,0.,0.,0.],
+        [0.,teta.cos(),-teta.sin(),0.],
+        [0.,teta.sin(),-teta.cos(),0.],
+        [0.,0.,0.,0.],
+    ]
 }
