@@ -40,6 +40,7 @@ impl Mesh {
         self.vertecies.as_slice()
     }
 
+    #[allow(dead_code)]
     fn matrix_mul(&mut self, m :[[f32;4];4]){
         self.vertecies.iter_mut().for_each(|vertex|{
             for i in 0..3{
@@ -48,6 +49,7 @@ impl Mesh {
         });
     }
 
+    #[allow(dead_code)]
     pub fn rotate_x (&mut self,teta:f32){
         self.matrix_mul(r_x(teta));
     }

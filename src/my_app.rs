@@ -1,95 +1,120 @@
-use glium::glutin::surface::WindowSurface;
-use glium::index::NoIndices;
-use glium::{winit::application::ApplicationHandler, VertexBuffer};
-use glium::{Display, Program};
+use glium::{glutin::surface::WindowSurface, index::NoIndices, winit::{application::ApplicationHandler, event_loop::{ActiveEventLoop, EventLoop}, window::Window}, Display, Program, VertexBuffer};
 
 use crate::meshes::Vertex;
-pub struct MyApp<DrawF,InitF,UpdaF>
-where 
-    DrawF:Fn(&glium::winit::event_loop::ActiveEventLoop,&mut AppAttr),
-    InitF:Fn(&glium::winit::event_loop::ActiveEventLoop,&mut AppAttr),  
-    UpdaF:Fn(&glium::winit::event_loop::ActiveEventLoop,f32,&mut AppAttr),
-{
-    draw_func   :DrawF,
-    update_func :UpdaF,
-    init_func   :InitF,
 
-    app_attributs:AppAttr
+
+pub type InitDraw<UsrEnv>       =fn(&glium::winit::event_loop::EventLoop<()>,&mut UsrEnv)->DrawEnv;
+pub type UpdateDraw<UsrEnv>     =fn(&glium::winit::event_loop::ActiveEventLoop,&mut UsrEnv,&DrawEnv)->();
+
+pub type UsrInit<UsrEnv>        =fn(&glium::winit::event_loop::ActiveEventLoop,&mut UsrEnv,&AppEnv)->();
+pub type UsrUpdate<UsrEnv>      =fn(&glium::winit::event_loop::ActiveEventLoop,&mut UsrEnv,&AppEnv)->();
+
+pub struct MyApp<UsrEnv>{
+    
+    //graphics
+    _init_draw   :InitDraw<UsrEnv>,
+    update_draw :UpdateDraw<UsrEnv>,
+
+    //usr funcs
+    usr_init    :UsrInit<UsrEnv>,
+    usr_update  :UsrUpdate<UsrEnv>,
+
+    //envs
+    app_env : AppEnv,
+    draw_env: DrawEnv,
+    usr_env : UsrEnv,
 }
 
-pub struct AppAttr{
-    //current instant (use to make delta)
-    pub time:std::time::Instant,
+pub struct AppEnv{
+    pub time: std::time::Instant,
+    pub dt  :f32
+}
 
-    pub vertex_buffer :VertexBuffer<Vertex>,
+impl AppEnv{
+    ///update the current time, and delta time
+    fn update_time(&mut self){
+        let now = std::time::Instant::now();
+        self.dt = now.duration_since(self.time).as_secs_f32();
+        self.time=now;
+    }
+}
+
+pub struct DrawEnv{
+    pub vertex_buffer : VertexBuffer<Vertex>,
+    pub programs : Program,
     pub indices :NoIndices,
 
-    pub shader_program:Option<Program>,
+    pub display :Display<WindowSurface>,
+    pub _window  :Window,
 }
 
+// impl DrawEnv {
+//     pub fn new(vertex_buffer : VertexBuffer<Vertex>,programs : Program,indices :NoIndices)->Self{
+//         DrawEnv{
+//             vertex_buffer,programs,indices
+//         }
+//     }
+// }
 
-impl<DrawF,InitF,UpdaF> MyApp<DrawF,InitF,UpdaF> 
-where 
-    DrawF:Fn(&glium::winit::event_loop::ActiveEventLoop,&mut AppAttr),
-    InitF:Fn(&glium::winit::event_loop::ActiveEventLoop,&mut AppAttr),  
-    UpdaF:Fn(&glium::winit::event_loop::ActiveEventLoop,f32,&mut AppAttr),
-{
-    pub fn new(
-        draw_func: DrawF,init_func:InitF,update_func:UpdaF ,
-        display:&Display<WindowSurface>)->Self{
-        return MyApp{
-            draw_func,init_func,update_func,
+impl<UsrEnv> MyApp<UsrEnv> {
+    pub fn new(event_loop:&EventLoop<()>,init_draw :InitDraw<UsrEnv>,update_draw :UpdateDraw<UsrEnv>,usr_init :UsrInit<UsrEnv>,usr_update :UsrUpdate<UsrEnv>,usr_env:UsrEnv)->Self{
+        let mut usr_env= usr_env;
+        let draw_env = init_draw(event_loop,&mut usr_env);
+        
+        Self{
+            _init_draw: init_draw  ,
+            update_draw,
+            usr_init   ,
+            usr_update ,
 
-            app_attributs:AppAttr{
-                time:std::time::Instant::now(),
-                vertex_buffer:VertexBuffer::new(display, &[]).unwrap(),
-                indices:glium::index::NoIndices(glium::index::PrimitiveType::TriangleFan),
-                shader_program:None,
+            app_env: AppEnv{
+                time: std::time::Instant::now(),
+                dt  : f32::MAX,
             },
-        };
+        
+            draw_env ,
+            usr_env,
+
+        }
+    }
+
+
+    pub fn draw(&mut self,event_loop:&ActiveEventLoop){
+        (self.update_draw)(event_loop,&mut self.usr_env,&self.draw_env);
     }
 }
 
-impl<DrawF,InitF,UpdaF> ApplicationHandler for MyApp<DrawF,InitF,UpdaF>
-where 
-    DrawF:Fn(&glium::winit::event_loop::ActiveEventLoop,&mut AppAttr),
-    InitF:Fn(&glium::winit::event_loop::ActiveEventLoop,&mut AppAttr),  
-    UpdaF:Fn(&glium::winit::event_loop::ActiveEventLoop,f32,&mut AppAttr),
-{
 
+
+impl<UsrEnv> ApplicationHandler for MyApp<UsrEnv>{
     fn resumed(&mut self, _event_loop: &glium::winit::event_loop::ActiveEventLoop) {
-        println!("resumed")
+        println!("resumed");
     }
-
-    fn suspended(&mut self, _event_loop: &glium::winit::event_loop::ActiveEventLoop) {
-        println!("suspended");
+    fn about_to_wait(&mut self, _event_loop: &ActiveEventLoop) {
+        ()
     }
-
+    fn exiting(&mut self, _event_loop: &ActiveEventLoop) {
+        println!("exiting")
+    }
+    fn suspended(&mut self, _event_loop: &ActiveEventLoop) {
+        println!("suspended")    
+    } 
     
-    fn exiting(&mut self, _event_loop: &glium::winit::event_loop::ActiveEventLoop) {
-        println!("exiting...")
-    }
 
-    fn new_events(&mut self, event_loop: &glium::winit::event_loop::ActiveEventLoop, cause: glium::winit::event::StartCause) {
+    fn new_events(&mut self, event_loop: &ActiveEventLoop, cause: glium::winit::event::StartCause) {
         match cause {
             glium::winit::event::StartCause::Init => {
-                todo!() //TODO init
+                (self.usr_init)(event_loop,&mut self.usr_env, &self.app_env);
             },
             glium::winit::event::StartCause::Poll => {
+                self.app_env.update_time();
+                (self.usr_update)(event_loop,&mut self.usr_env,&self.app_env);
 
-                let now =std::time::Instant::now(); 
-                let delta = now.duration_since(self.app_attributs.time).as_secs_f32();
-                self.app_attributs.time = now;
-        
-                (self.update_func)(event_loop,delta,&mut self.app_attributs);
             },
-            
-            _=>(),
+            glium::winit::event::StartCause::ResumeTimeReached { start:_, requested_resume:_ } => (),
+            glium::winit::event::StartCause::WaitCancelled { start:_, requested_resume:_ } => (),
         }
-
-        
     }
-
 
     fn window_event(
         &mut self,
@@ -99,15 +124,10 @@ where
     ) {
         match event {
             glium::winit::event::WindowEvent::CloseRequested => event_loop.exit(),
-            glium::winit::event::WindowEvent::AxisMotion { device_id: _, axis:_, value:_ }=>(),
-            glium::winit::event::WindowEvent::CursorMoved { device_id:_, position:_ }=>(),
-            glium::winit::event::WindowEvent::CursorEntered { device_id :_}=>(),
-            glium::winit::event::WindowEvent::CursorLeft { device_id:_ }=>(),
-            glium::winit::event::WindowEvent::RedrawRequested=>(self.draw_func)(event_loop,&mut self.app_attributs),
-            glium::winit::event::WindowEvent::MouseInput { device_id:_, state:_, button:_ }=>(),
-            
-            _=>println!("event :{:?}",event),
-        }
+            glium::winit::event::WindowEvent::Destroyed => println!("the windows as been destroy"),
+            glium::winit::event::WindowEvent::RedrawRequested => self.draw(event_loop),
 
+            _=>()
+        }
     }
 }
