@@ -4,7 +4,7 @@ use crate::meshes::Vertex;
 
 
 pub type InitDraw<UsrEnv>       =fn(&glium::winit::event_loop::EventLoop<()>,&mut UsrEnv)->DrawEnv;
-pub type UpdateDraw<UsrEnv>     =fn(&glium::winit::event_loop::ActiveEventLoop,&mut UsrEnv,&DrawEnv)->();
+pub type UpdateDraw<UsrEnv>     =fn(&glium::winit::event_loop::ActiveEventLoop,&mut UsrEnv,&mut DrawEnv)->();
 
 pub type UsrInit<UsrEnv>        =fn(&glium::winit::event_loop::ActiveEventLoop,&mut UsrEnv,&AppEnv)->();
 pub type UsrUpdate<UsrEnv>      =fn(&glium::winit::event_loop::ActiveEventLoop,&mut UsrEnv,&AppEnv)->();
@@ -48,13 +48,6 @@ pub struct DrawEnv{
     pub _window  :Window,
 }
 
-// impl DrawEnv {
-//     pub fn new(vertex_buffer : VertexBuffer<Vertex>,programs : Program,indices :NoIndices)->Self{
-//         DrawEnv{
-//             vertex_buffer,programs,indices
-//         }
-//     }
-// }
 
 impl<UsrEnv> MyApp<UsrEnv> {
     pub fn new(event_loop:&EventLoop<()>,init_draw :InitDraw<UsrEnv>,update_draw :UpdateDraw<UsrEnv>,usr_init :UsrInit<UsrEnv>,usr_update :UsrUpdate<UsrEnv>,usr_env:UsrEnv)->Self{
@@ -78,9 +71,8 @@ impl<UsrEnv> MyApp<UsrEnv> {
         }
     }
 
-
     pub fn draw(&mut self,event_loop:&ActiveEventLoop){
-        (self.update_draw)(event_loop,&mut self.usr_env,&self.draw_env);
+        (self.update_draw)(event_loop,&mut self.usr_env,&mut self.draw_env);
     }
 }
 

@@ -8,8 +8,6 @@ mod meshes;
 
 fn main() {
 
-
-
     let init_draw:my_app::InitDraw<UsrEnv> = |event: &glium::winit::event_loop::EventLoop<()>,usr_env:&mut UsrEnv|{
             let mesh = &usr_env.mesh;
             let vertex_shader_src = std::fs::read_to_string("shaders/vertex.vert").unwrap();
@@ -30,10 +28,11 @@ fn main() {
 
                 display,_window:window,
             };
-
     };
 
-    let draw :my_app::UpdateDraw<UsrEnv> = |_event_loop: &glium::winit::event_loop::ActiveEventLoop,_usr_env: &mut UsrEnv,draw_env:&DrawEnv|{
+    let draw :my_app::UpdateDraw<UsrEnv> = |_event_loop: &glium::winit::event_loop::ActiveEventLoop,_usr_env: &mut UsrEnv,draw_env:&mut DrawEnv|{
+
+        draw_env.vertex_buffer.map_write().set(0, /* vertex_buffer[0] */);
 
         let vertex_buffer = &draw_env.vertex_buffer;
         let indices = &draw_env.indices;
@@ -50,15 +49,14 @@ fn main() {
         target.draw(vertex_buffer, indices, &programs, &uniforms,
             &Default::default()).unwrap();
         target.finish().unwrap();
-            
-
-        
+              
     };
 
     let init: my_app::UsrInit<UsrEnv> = |_event,_usr_env,_app_env|{()};
 
-    let update :my_app::UsrUpdate<UsrEnv> = |_event,usr_env,_app_env|{
-        ()
+    let update :my_app::UsrUpdate<UsrEnv> = |_event,usr_env,app_env|{
+        usr_env.mesh.rotate_x(4.*app_env.dt);
+        
     };
    
     struct UsrEnv {
