@@ -3,8 +3,8 @@ use glium::{glutin::surface::WindowSurface, index::NoIndices, winit::{applicatio
 use crate::meshes::Vertex;
 
 
-pub type InitDraw<UsrEnv>       =fn(&glium::winit::event_loop::EventLoop<()>,&mut UsrEnv)->DrawEnv;
-pub type UpdateDraw<UsrEnv>     =fn(&glium::winit::event_loop::ActiveEventLoop,&mut UsrEnv,&mut DrawEnv)->();
+pub type InitDraw<UsrEnv>       =fn(&glium::winit::event_loop::EventLoop<()>  ,&AppEnv,&mut UsrEnv)->DrawEnv;
+pub type UpdateDraw<UsrEnv>     =fn(&glium::winit::event_loop::ActiveEventLoop,&AppEnv,&mut UsrEnv,&mut DrawEnv)->();
 
 pub type UsrInit<UsrEnv>        =fn(&glium::winit::event_loop::ActiveEventLoop,&mut UsrEnv,&AppEnv)->();
 pub type UsrUpdate<UsrEnv>      =fn(&glium::winit::event_loop::ActiveEventLoop,&mut UsrEnv,&AppEnv)->();
@@ -51,8 +51,12 @@ pub struct DrawEnv{
 
 impl<UsrEnv> MyApp<UsrEnv> {
     pub fn new(event_loop:&EventLoop<()>,init_draw :InitDraw<UsrEnv>,update_draw :UpdateDraw<UsrEnv>,usr_init :UsrInit<UsrEnv>,usr_update :UsrUpdate<UsrEnv>,usr_env:UsrEnv)->Self{
+        let app_env = AppEnv{
+            time: std::time::Instant::now(),
+            dt  : f32::MAX,
+        };
         let mut usr_env= usr_env;
-        let draw_env = init_draw(event_loop,&mut usr_env);
+        let draw_env = init_draw(event_loop,&app_env,&mut usr_env);
         
         Self{
             _init_draw: init_draw  ,
@@ -60,10 +64,7 @@ impl<UsrEnv> MyApp<UsrEnv> {
             usr_init   ,
             usr_update ,
 
-            app_env: AppEnv{
-                time: std::time::Instant::now(),
-                dt  : f32::MAX,
-            },
+            app_env,
         
             draw_env ,
             usr_env,
@@ -72,7 +73,7 @@ impl<UsrEnv> MyApp<UsrEnv> {
     }
 
     pub fn draw(&mut self,event_loop:&ActiveEventLoop){
-        (self.update_draw)(event_loop,&mut self.usr_env,&mut self.draw_env);
+        (self.update_draw)(event_loop,&self.app_env,&mut self.usr_env,&mut self.draw_env);
     }
 }
 
@@ -101,6 +102,7 @@ impl<UsrEnv> ApplicationHandler for MyApp<UsrEnv>{
             glium::winit::event::StartCause::Poll => {
                 self.app_env.update_time();
                 (self.usr_update)(event_loop,&mut self.usr_env,&self.app_env);
+                self.draw(event_loop);
 
             },
             glium::winit::event::StartCause::ResumeTimeReached { start:_, requested_resume:_ } => (),

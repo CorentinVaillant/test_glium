@@ -6,9 +6,15 @@ use my_app::{ DrawEnv, MyApp};
 mod my_app;
 mod meshes;
 
+
 fn main() {
 
-    let init_draw:my_app::InitDraw<UsrEnv> = |event: &glium::winit::event_loop::EventLoop<()>,usr_env:&mut UsrEnv|{
+    let init_draw:my_app::InitDraw<UsrEnv> = |event,_app_env,usr_env|{
+
+            // let v_mat = [
+            //     []
+            // ]
+
             let mesh = &usr_env.mesh;
             let vertex_shader_src = std::fs::read_to_string("shaders/vertex.vert").unwrap();
             let fragment_shader_src = std::fs::read_to_string("shaders/fragment.frag").unwrap();
@@ -19,7 +25,7 @@ fn main() {
             
             let vertex_buffer = glium::VertexBuffer::new(&display,mesh.into_vertex_slice() ).unwrap();
             let programs = glium::Program::from_source(&display, &vertex_shader_src, &fragment_shader_src, None).unwrap();
-            let indices = glium::index::NoIndices(glium::index::PrimitiveType::TrianglesList);
+            let indices = glium::index::NoIndices(glium::index::PrimitiveType::TriangleStrip);
 
             return DrawEnv{
                 vertex_buffer,
@@ -30,17 +36,17 @@ fn main() {
             };
     };
 
-    let draw :my_app::UpdateDraw<UsrEnv> = |_event_loop: &glium::winit::event_loop::ActiveEventLoop,_usr_env: &mut UsrEnv,draw_env:&mut DrawEnv|{
+    let draw :my_app::UpdateDraw<UsrEnv> = |_event_loop ,_app_env,usr_env,draw_env|{
 
-        draw_env.vertex_buffer.map_write().set(0, /* vertex_buffer[0] */);
-
+        usr_env.mesh.write_into_buffer(&mut draw_env.vertex_buffer);
         let vertex_buffer = &draw_env.vertex_buffer;
         let indices = &draw_env.indices;
         let programs = &draw_env.programs;
         let display = &draw_env.display;
 
+
         let mut target = display.draw();
-        target.clear_color(0.0, 0.0, 1.0, 1.0);
+        target.clear_color(0.1, 0.1, 0.1, 1.0);
 
         
         let uniforms = uniform! {
@@ -55,15 +61,19 @@ fn main() {
     let init: my_app::UsrInit<UsrEnv> = |_event,_usr_env,_app_env|{()};
 
     let update :my_app::UsrUpdate<UsrEnv> = |_event,usr_env,app_env|{
-        usr_env.mesh.rotate_x(4.*app_env.dt);
+        usr_env.mesh.rotate_y(5.*app_env.dt);
+
+        
         
     };
    
     struct UsrEnv {
-        mesh : meshes::Mesh
+        mesh : meshes::Mesh,
+
+        view_matrix :[[f32;4];4]
     }
 
-    let usr_env = UsrEnv{mesh :meshes::Mesh::new(meshes::TRIANGLE.to_vec())};
+    let usr_env = UsrEnv{mesh :meshes::Mesh::new(meshes::TRIANGLE.to_vec()),view_matrix: [[0.;4];4]};
 
     
     //building event loop
