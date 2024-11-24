@@ -42,7 +42,7 @@ struct MyApp {
 
 impl ApplicationContext for MyApp {
     fn new(display: &glium::Display<glium::glutin::surface::WindowSurface>)->Self {
-        let mut mesh = Mesh::load_from_obj(OBJ_PATH).expect("mesh could not be load");
+        let mut mesh = Mesh::old_load_from_obj(OBJ_PATH).expect("mesh could not be load");
         mesh.scale_applied(100.);
         // let mesh = Mesh::from(primitives_mesh::TRIANGLE.to_vec());
         

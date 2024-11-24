@@ -1,5 +1,3 @@
-
-
 use std::fs::read_to_string;
 
 use glium::{implement_vertex, VertexBuffer};
@@ -65,7 +63,8 @@ pub struct Mesh{
     size : f32,
     position : [f32;3],
 
-    vertecies :Vec<Vertex>
+    vertecies :Vec<Vertex>,
+    vertex_indices :Vec<usize>
 
 
 }
@@ -76,10 +75,27 @@ impl From<Vec<Vertex>> for Mesh{
             size :1.,
             position:[0.;3],
 
-            vertecies
+            vertecies,
+            vertex_indices:vec![]
         }
     }
 }
+
+
+impl From<Vec<[f32;4]>> for Mesh{
+    fn from(vec: Vec<[f32;4]>) -> Self {
+        let mut result_vec = vec![];
+
+        for tab in vec.into_iter(){
+            result_vec.push(Vertex::from(tab));
+        }
+
+        Mesh::from(result_vec)
+
+    }
+}
+
+
 
 impl Mesh {
     pub fn empty_mesh()->Mesh {
@@ -87,24 +103,9 @@ impl Mesh {
             size : 1.,
             position :[0.;3],
 
-            vertecies:vec![]
+            vertecies:vec![],
+            vertex_indices:vec![]
         }
-    }
-
-    pub fn load_from_obj(path:&str)->Result<Mesh,std::io::Error>{
-        let mut result = Self::empty_mesh();
-
-        let file = read_to_string(path)?;
-        for line in file.lines(){
-            match obj_parse_line_type(line) {
-                ObjLineType::Vertex => obj_parse_vertex(line, &mut result.vertecies),
-                
-                ObjLineType::Comment=>println!("OBJ comment :{}",line),
-                _=>()//TODO,
-            };
-        }
-
-        Ok(result)
     }
 
     pub fn into_vertex_slice(&self)->&[Vertex]{
@@ -140,6 +141,61 @@ impl Mesh {
 
 
         self.transform(trans_mat);
+    }
+
+}
+
+
+impl Mesh{
+    pub fn old_load_from_obj(path:&str)->Result<Mesh,std::io::Error>{
+        let mut vertex_vec: Vec<[f32;4]> = vec![];
+
+
+        let file = read_to_string(path)?;
+        for line in file.lines(){
+            match obj_parse_line_type(line) {
+
+                ObjLineType::Vertex => {
+                    let mut vertex_coord = [0.;4];
+                    obj_parse_vertex(line, &mut vertex_coord);
+                    vertex_vec.push(vertex_coord);
+
+                },
+
+                
+                ObjLineType::Comment=>println!("OBJ comment :{}",line),
+                _=>()//TODO,
+            };
+        }
+
+        
+        Ok(Mesh::from(vertex_vec))
+    }
+
+    pub fn load_from_obj(path:&str)->Result<Mesh,std::io::Error>{//TODO
+
+        let mut vertex_vec: Vec<[f32;4]> = vec![];
+
+
+        let file = read_to_string(path)?;
+        for line in file.lines(){
+            match obj_parse_line_type(line) {
+
+                ObjLineType::Vertex => {
+                    let mut vertex_coord = [0.;4];
+                    obj_parse_vertex(line, &mut vertex_coord);
+                    vertex_vec.push(vertex_coord);
+
+                },
+
+                
+                ObjLineType::Comment=>println!("OBJ comment :{}",line),
+                _=>()//TODO,
+            };
+        }
+
+        
+        Ok(Mesh::from(vertex_vec))
     }
 
 }
@@ -184,10 +240,8 @@ fn obj_parse_line_type(line:&str)->ObjLineType{
 
 }
 
-fn obj_parse_vertex(line : &str,vec :&mut Vec<Vertex>){
-
-    vec.push( Vertex::from(parse_float(line)));
-
+fn obj_parse_vertex(line : &str,tab :&mut [f32;4]){
+    tab.iter_mut().for_each(|x|{*x = parse_float(line).into_iter().next().unwrap_or(1.)});
 }
 
 fn parse_float(line :&str)->Vec<f32>{
