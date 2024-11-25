@@ -3,6 +3,7 @@ use glium::{index::NoIndices, uniform, winit::event_loop::EventLoop, Surface};
 use mesh::{Mesh, Vertex};
 use test::test_mesh;
 
+mod camera;
 mod app;
 mod mesh;
 mod test;
@@ -70,11 +71,7 @@ impl ApplicationContext for MyApp {
 
     fn draw_frame(&mut self, display: &glium::Display<glium::glutin::surface::WindowSurface>) {
 
-        let now = std::time::Instant::now();
-        self.dt = now.duration_since(self.time).as_secs_f32();
-        self.time=now;
 
-        self.mesh.rotate_z(1.*self.dt);
         self.mesh.load_into_vertex_buffer(& self.draw_context.vertex_buffer);
         let vertex_buffer = &self.draw_context.vertex_buffer;
         let indices = self.draw_context.indices;
@@ -92,6 +89,16 @@ impl ApplicationContext for MyApp {
         target.finish().unwrap();
 
         
+        
+    }
+
+    fn update(&mut self) {
+        let now = std::time::Instant::now();
+        self.dt = now.duration_since(self.time).as_secs_f32();
+        self.time=now;
+
+        self.mesh.rotate_y(1.*self.dt);
+
         
     }
 

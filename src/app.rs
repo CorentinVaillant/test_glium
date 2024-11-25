@@ -92,7 +92,8 @@ impl<T: ApplicationContext> ApplicationHandler<()> for App<T>{
                 logical_key: glium::winit::keyboard::Key::Named(glium::winit::keyboard::NamedKey::Escape),
                 ..
             }, ..} => {
-                event_loop.exit()
+                event_loop.exit();
+                std::process::exit(0);
             },
 
             ev=>{

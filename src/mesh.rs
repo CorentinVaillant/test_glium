@@ -132,10 +132,24 @@ impl Mesh {
     }
 
     pub fn rotate_z(&mut self,theta:f32){
+        let theta = theta % (2.*std::f32::consts::PI);
         let trans_mat = [
             [theta.cos(),-theta.sin(),0.,0.],
             [theta.sin(),theta.cos(),0.,0.],
             [0.,0.,1.,0.],
+            [0.,0.,0.,1.]
+        ];
+
+
+        self.transform(trans_mat);
+    }
+
+    pub fn rotate_y(&mut self,theta:f32){
+        let theta = theta % (2.*std::f32::consts::PI);
+        let trans_mat = [
+            [theta.cos(),0.,theta.sin(),0.],
+            [0.,1.,0.,0.],
+            [-theta.sin(),0.,theta.cos(),0.],
             [0.,0.,0.,1.]
         ];
 
@@ -163,7 +177,7 @@ impl Mesh{
                 },
 
                 
-                ObjLineType::Comment=>println!("OBJ comment :{}",line),
+                // ObjLineType::Comment=>println!("OBJ comment :{}",line),
                 _=>()//TODO,
             };
         }
@@ -241,7 +255,8 @@ fn obj_parse_line_type(line:&str)->ObjLineType{
 }
 
 fn obj_parse_vertex(line : &str,tab :&mut [f32;4]){
-    tab.iter_mut().for_each(|x|{*x = parse_float(line).into_iter().next().unwrap_or(1.)});
+    let mut vec_float = parse_float(line).into_iter();
+    tab.iter_mut().for_each(|x|{*x = vec_float.next().unwrap_or(1.)});
 }
 
 fn parse_float(line :&str)->Vec<f32>{
