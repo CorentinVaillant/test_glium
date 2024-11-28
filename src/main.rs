@@ -97,7 +97,7 @@ impl ApplicationContext for MyApp {
         self.dt = now.duration_since(self.time).as_secs_f32();
         self.time=now;
 
-        self.mesh.rotate_y(1.*self.dt);
+        self.mesh.rotate_z(1.*self.dt);
 
         
     }

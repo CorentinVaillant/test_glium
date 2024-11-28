@@ -5,23 +5,21 @@ use glium::{implement_vertex, VertexBuffer};
 #[derive(Clone, Copy,Debug)]
 pub struct Vertex{
     pub position : [f32;4],
-}implement_vertex!(Vertex,position);
+    pub normal : [f32;4],
+}implement_vertex!(Vertex,position,normal);
 
 impl Vertex {
-    #[allow(dead_code)]
-    fn new(x:f32,y:f32,z:f32,w:f32)->Self{
-        Vertex{
-            position :[x,y,z,w]
-        }
-    }
 
     fn transform(&mut self, trans_mat:[[f32;4];4]){
         for i in 0..4{
-            let mut y = 0.;
+            let mut y_pos = 0.;
+            let mut y_norm = 0.;
             for k in 0..4{
-                y+= trans_mat[i][k]*self.position[k];
+                y_pos += trans_mat[i][k]*self.position[k];
+                y_norm+= trans_mat[i][k]*self.normal[k];
             }
-            self.position[i] = y;
+            self.position[i] = y_pos;
+            self.normal[i] = y_norm;
         }
     }
 }
@@ -29,7 +27,8 @@ impl Vertex {
 impl From<[f32;3]> for Vertex {
     fn from(value: [f32;3]) -> Self {
         Vertex{
-            position :[value[0],value[1],value[2],1.]
+            position :[value[0],value[1],value[2],1.],
+            normal : [0.;4],
         }
     }
 }
@@ -37,7 +36,8 @@ impl From<[f32;3]> for Vertex {
 impl From<[f32;4]> for Vertex{
     fn from(value: [f32;4]) -> Self {
         Vertex{
-            position :value
+            position :value,
+            normal : [0.;4],
         }
     }
 }
@@ -51,7 +51,8 @@ impl From<Vec<f32>> for Vertex{
         }
 
         Vertex{
-            position
+            position,
+            normal : [0.;4],
         }
     }
 }
@@ -161,23 +162,21 @@ impl Mesh {
 
 
 impl Mesh{
-    pub fn old_load_from_obj(path:&str)->Result<Mesh,std::io::Error>{
+    pub fn old_load_from_obj(path:&str)->Result<Mesh,std::io::Error>{//TODO
+
         let mut vertex_vec: Vec<[f32;4]> = vec![];
+        let mut vertex_normal_vec: Vec<[f32;4]> = vec![];
 
 
         let file = read_to_string(path)?;
         for line in file.lines(){
             match obj_parse_line_type(line) {
 
-                ObjLineType::Vertex => {
-                    let mut vertex_coord = [0.;4];
-                    obj_parse_vertex(line, &mut vertex_coord);
-                    vertex_vec.push(vertex_coord);
-
-                },
+                ObjLineType::Vertex =>  vertex_vec.push(obj_parse_vertex(line)),
+                ObjLineType::VertexNormal=>vertex_normal_vec.push(obj_parse_vertex_normal(line)),
 
                 
-                // ObjLineType::Comment=>println!("OBJ comment :{}",line),
+                ObjLineType::Comment=>println!("OBJ comment :{}",line),
                 _=>()//TODO,
             };
         }
@@ -189,18 +188,15 @@ impl Mesh{
     pub fn load_from_obj(path:&str)->Result<Mesh,std::io::Error>{//TODO
 
         let mut vertex_vec: Vec<[f32;4]> = vec![];
+        let mut vertex_normal_vec: Vec<[f32;4]> = vec![];
 
 
         let file = read_to_string(path)?;
         for line in file.lines(){
             match obj_parse_line_type(line) {
 
-                ObjLineType::Vertex => {
-                    let mut vertex_coord = [0.;4];
-                    obj_parse_vertex(line, &mut vertex_coord);
-                    vertex_vec.push(vertex_coord);
-
-                },
+                ObjLineType::Vertex =>  vertex_vec.push(obj_parse_vertex(line)),
+                ObjLineType::VertexNormal=>vertex_normal_vec.push(obj_parse_vertex_normal(line)),
 
                 
                 ObjLineType::Comment=>println!("OBJ comment :{}",line),
@@ -226,7 +222,6 @@ enum ObjLineType {
     Empty,
     Unknow,
 }
-
 fn obj_parse_line_type(line:&str)->ObjLineType{
     let mut line = line.chars();
 
@@ -254,9 +249,18 @@ fn obj_parse_line_type(line:&str)->ObjLineType{
 
 }
 
-fn obj_parse_vertex(line : &str,tab :&mut [f32;4]){
+fn obj_parse_vertex(line : &str)->[f32;4]{
+    let mut result = [0.;4];
     let mut vec_float = parse_float(line).into_iter();
-    tab.iter_mut().for_each(|x|{*x = vec_float.next().unwrap_or(1.)});
+    result.iter_mut().for_each(|x|{*x = vec_float.next().unwrap_or(1.)});
+    result
+}
+
+fn obj_parse_vertex_normal(line : &str)->[f32;4]{
+    let mut result = [0.;4];
+    let mut vec_float = parse_float(line).into_iter();
+    result.iter_mut().for_each(|x|{*x = vec_float.next().unwrap_or(1.)});
+    result
 }
 
 fn parse_float(line :&str)->Vec<f32>{
