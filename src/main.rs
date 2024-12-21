@@ -1,19 +1,14 @@
-use app::{App, ApplicationContext};
-use glium::{index::NoIndices, uniform, winit::event_loop::EventLoop, Surface};
-use mesh::{Mesh, Vertex};
-use test::test_mesh;
 
-mod camera;
-mod app;
-mod mesh;
-mod test;
-mod primitives_mesh;
+
+use my_glium_util::app::{App, ApplicationContext};
+use glium::{index::NoIndices, uniform, winit::event_loop::EventLoop, Surface};
+use my_glium_util::mesh::mesh::{Mesh, Vertex};
+
 
 const OBJ_PATH : &str = "./obj/triangle.obj";
 
 fn main() {
     println!("test mesh");
-    test_mesh();
 
     println!("Starting app");
     let mut app: App<MyApp> = App::new("my app");

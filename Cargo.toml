@@ -5,3 +5,4 @@ edition = "2021"
 
 [dependencies]
 glium = "0.36.0"
+my_glium_util = { version = "0.1.0", path = "my_glium_util" }
