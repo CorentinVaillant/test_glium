@@ -1,0 +1,3 @@
+[submodule "my_glium_util"]
+	path = my_glium_util
+	url = https://github.com/CorentinVaillant/my_glium_util.git
