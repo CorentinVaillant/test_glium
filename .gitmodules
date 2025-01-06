@@ -2,5 +2,5 @@
 	path = my_glium_util
 	url = https://github.com/CorentinVaillant/my_glium_util.git
 [submodule "my_rust_matrix_lib"]
-	path = my_rust_matrix_lib
+	path = my_glium_util/my_rust_matrix_lib
 	url = https://github.com/CorentinVaillant/my_rust_matrix_lib.git
