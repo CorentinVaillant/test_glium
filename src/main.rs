@@ -38,15 +38,14 @@ struct MyApp {
 
 impl ApplicationContext for MyApp {
     fn new(display: &glium::Display<glium::glutin::surface::WindowSurface>)->Self {
-        let mut mesh = Mesh::old_load_from_obj(OBJ_PATH).expect("mesh could not be load");
-        mesh.scale_applied(100.);
-        // let mesh = Mesh::from(primitives_mesh::TRIANGLE.to_vec());
+        let mut mesh = Mesh::load_from_obj(OBJ_PATH).expect("mesh could not be load");
+        mesh.scale(100.);
         
 
         let vertex_shader_src = std::fs::read_to_string("shaders/vertex.vert").unwrap();
         let fragment_shader_src = std::fs::read_to_string("shaders/fragment.frag").unwrap();
 
-        let vertex_buffer: glium::VertexBuffer<Vertex> = glium::VertexBuffer::dynamic(display, mesh.into_vertex_slice()).unwrap();
+        let vertex_buffer: glium::VertexBuffer<Vertex> = glium::VertexBuffer::dynamic(display, mesh.as_vertex_slice()).unwrap();
 
         let program= glium::Program::from_source(display, &vertex_shader_src, &fragment_shader_src, None).unwrap();
         let indices = glium::index::NoIndices(glium::index::PrimitiveType::TrianglesList);
@@ -67,7 +66,7 @@ impl ApplicationContext for MyApp {
     fn draw_frame(&mut self, display: &glium::Display<glium::glutin::surface::WindowSurface>) {
 
 
-        self.mesh.load_into_vertex_buffer(& self.draw_context.vertex_buffer);
+        self.mesh.load_into_vertex_buffer(&self.draw_context.vertex_buffer);
         let vertex_buffer = &self.draw_context.vertex_buffer;
         let indices = self.draw_context.indices;
         let programs = &self.draw_context.program;
