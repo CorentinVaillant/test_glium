@@ -1,8 +1,11 @@
 
 
 use my_glium_util::app::{App, ApplicationContext};
-use glium::{index::NoIndices, uniform, winit::event_loop::EventLoop, Surface};
-use my_glium_util::mesh::mesh::{Mesh, Vertex};
+use glium::{uniform, winit::event_loop::EventLoop, Surface};
+use my_glium_util::camera::OrthographicCam;
+use my_glium_util::mesh::mesh::Mesh;
+use my_glium_util::mesh::obj_parser::WaveFrontParsable;
+use my_glium_util::object_traits::{ApplicableSceneObject, Renderable, SceneObject, Translation};
 
 
 const OBJ_PATH : &str = "./obj/triangle.obj";
@@ -21,14 +24,38 @@ fn main() {
 }
 
 struct DrawContext{
-    vertex_buffer: glium::VertexBuffer<Vertex>,
     program: glium::Program,
-    indices:NoIndices
 }
 
 
+struct GlobalVariable{
+    cam_pos : Translation,
+}
+impl Default for GlobalVariable{
+    fn default() -> Self {
+        Self { cam_pos: Translation::zero() }
+    }
+}
+struct MyObjects{
+    triangle : Mesh,
+    camera : OrthographicCam,
+}
+
+impl Default for MyObjects {
+    fn default() -> Self {
+        let mut triangle = Mesh::load_from_wavefront(OBJ_PATH).unwrap();
+        triangle.scale([100.;3].into());
+        triangle.apply_scale();
+        Self{
+            triangle ,
+            camera : OrthographicCam::new([0.,-5.,0.].into(), 1. , -1., -10. , -10. ,)
+        }
+    }
+}
+
 struct MyApp {
-    mesh :Mesh,
+    objects:MyObjects,
+    variable : GlobalVariable,
 
     draw_context : DrawContext,
 
@@ -38,24 +65,19 @@ struct MyApp {
 
 impl ApplicationContext for MyApp {
     fn new(display: &glium::Display<glium::glutin::surface::WindowSurface>)->Self {
-        let mut mesh = Mesh::load_from_obj(OBJ_PATH).expect("mesh could not be load");
-        mesh.scale(100.);
-        
+
 
         let vertex_shader_src = std::fs::read_to_string("shaders/vertex.vert").unwrap();
         let fragment_shader_src = std::fs::read_to_string("shaders/fragment.frag").unwrap();
 
-        let vertex_buffer: glium::VertexBuffer<Vertex> = glium::VertexBuffer::dynamic(display, mesh.as_vertex_slice()).unwrap();
 
         let program= glium::Program::from_source(display, &vertex_shader_src, &fragment_shader_src, None).unwrap();
-        let indices = glium::index::NoIndices(glium::index::PrimitiveType::TrianglesList);
 
         MyApp { 
-            mesh, 
+            objects : MyObjects::default(),
+            variable : GlobalVariable::default(),
             draw_context: DrawContext{
-                vertex_buffer,
                 program,
-                indices
             },
 
             time : std::time::Instant::now(), 
@@ -65,24 +87,23 @@ impl ApplicationContext for MyApp {
 
     fn draw_frame(&mut self, display: &glium::Display<glium::glutin::surface::WindowSurface>) {
 
-
-        self.mesh.load_into_vertex_buffer(&self.draw_context.vertex_buffer);
-        let vertex_buffer = &self.draw_context.vertex_buffer;
-        let indices = self.draw_context.indices;
-        let programs = &self.draw_context.program;
-
         let mut target = display.draw();
         target.clear_color(0.1, 0.1, 0.1, 1.0);
 
+        let programs = &self.draw_context.program;
         
-        let uniforms = uniform! {
-            screen_size: target.get_dimensions()
-        };
-        target.draw(vertex_buffer, indices, &programs, &uniforms,
-            &Default::default()).unwrap();
-        target.finish().unwrap();
+        
 
-        
+        let uniforms = uniform! {
+            screen_size: target.get_dimensions(),
+            projection_matrix : self.objects.camera,
+        };
+
+        let draw_parameters = glium::DrawParameters::default();
+
+        self.objects.triangle.render(display, &programs, &mut target, &uniforms, &draw_parameters).unwrap_or_else(|e|{dbg!(e);});
+
+        target.finish().unwrap_or_else(|e|{dbg!(e);});
         
     }
 
@@ -91,8 +112,9 @@ impl ApplicationContext for MyApp {
         self.dt = now.duration_since(self.time).as_secs_f32();
         self.time=now;
 
-        self.mesh.rotate_z(1.*self.dt);
 
+        self.variable.cam_pos += Translation::from([0.,0.,0.]);
+        self.objects.camera.translate(self.variable.cam_pos);
         
     }
 
